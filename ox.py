@@ -1,70 +1,114 @@
-theboard = {
-    '7': ' ', '8': ' ', '9': ' ',
-    '4': ' ', '5': ' ', '6': ' ',
-    '1': ' ', '2': ' ', '3': ' '
-}
+import tkinter as tk
+from tkinter import messagebox
+import copy
 
-board_key = list(theboard.keys())
+class TicTacToeAI:
+    def __init__(self):
+        self.window = tk.Tk()
+        self.window.title("XO Game with AI")
+        self.window.configure(bg="#1e1e1e")
+        self.player = "X"
+        self.ai = "O"
+        self.board = [["" for _ in range(3)] for _ in range(3)]
+        self.buttons = [[None for _ in range(3)] for _ in range(3)]
+        self.create_buttons()
+        self.window.mainloop()
 
-def printboard(board):
-    print(board['7'] + '|' + board['8'] + '|' + board['9'])
-    print('-+-+-')
-    print(board['4'] + '|' + board['5'] + '|' + board['6'])
-    print('-+-+-')
-    print(board['1'] + '|' + board['2'] + '|' + board['3'])
+    def create_buttons(self):
+        for i in range(3):
+            for j in range(3):
+                btn = tk.Button(self.window, text="", font=('Helvetica', 32), width=5, height=2,
+                                command=lambda row=i, col=j: self.player_move(row, col),
+                                bg="#292929", fg="white", activebackground="#3c3c3c")
+                btn.grid(row=i, column=j, padx=5, pady=5)
+                self.buttons[i][j] = btn
 
-def game():
-    turn = 'X'
-    count = 0
+    def player_move(self, row, col):
+        if self.board[row][col] == "":
+            self.board[row][col] = self.player
+            self.buttons[row][col]["text"] = self.player
+            if self.check_winner(self.board, self.player):
+                messagebox.showinfo("Game Over", "You Win!")
+                self.reset_board()
+                return
+            elif self.is_draw(self.board):
+                messagebox.showinfo("Game Over", "It's a Draw!")
+                self.reset_board()
+                return
+            self.window.after(300, self.ai_move)  
 
-    for i in range(10):
-        printboard(theboard)
-        print(f"It is your turn, {turn}. Move to which place?")
+    def ai_move(self):
+        best_score = -float("inf")
+        best_move = None
+        for i in range(3):
+            for j in range(3):
+                if self.board[i][j] == "":
+                    self.board[i][j] = self.ai
+                    score = self.minimax(self.board, 0, False)
+                    self.board[i][j] = ""
+                    if score > best_score:
+                        best_score = score
+                        best_move = (i, j)
+        if best_move:
+            i, j = best_move
+            self.board[i][j] = self.ai
+            self.buttons[i][j]["text"] = self.ai
+            if self.check_winner(self.board, self.ai):
+                messagebox.showinfo("Game Over", "AI Wins!")
+                self.reset_board()
+            elif self.is_draw(self.board):
+                messagebox.showinfo("Game Over", "It's a Draw!")
+                self.reset_board()
 
-        move = input()
+    def minimax(self, board, depth, is_max):
+        if self.check_winner(board, self.ai):
+            return 1
+        if self.check_winner(board, self.player):
+            return -1
+        if self.is_draw(board):
+            return 0
 
-        
-        if move not in theboard:
-            print("Invalid move. Please choose a valid position.")
-            continue
-
-        if theboard[move] == ' ':
-            theboard[move] = turn
-            count += 1
+        if is_max:
+            best = -float("inf")
+            for i in range(3):
+                for j in range(3):
+                    if board[i][j] == "":
+                        board[i][j] = self.ai
+                        best = max(best, self.minimax(board, depth + 1, False))
+                        board[i][j] = ""
+            return best
         else:
-            print("That place is already filled. Try again.")
-            continue
+            best = float("inf")
+            for i in range(3):
+                for j in range(3):
+                    if board[i][j] == "":
+                        board[i][j] = self.player
+                        best = min(best, self.minimax(board, depth + 1, True))
+                        board[i][j] = ""
+            return best
 
-        
-        if count >= 5:
-            if (theboard['7'] == theboard['8'] == theboard['9'] != ' ') or \
-               (theboard['4'] == theboard['5'] == theboard['6'] != ' ') or \
-               (theboard['1'] == theboard['2'] == theboard['3'] != ' ') or \
-               (theboard['7'] == theboard['4'] == theboard['1'] != ' ') or \
-               (theboard['8'] == theboard['5'] == theboard['2'] != ' ') or \
-               (theboard['9'] == theboard['6'] == theboard['3'] != ' ') or \
-               (theboard['7'] == theboard['5'] == theboard['3'] != ' ') or \
-               (theboard['9'] == theboard['5'] == theboard['1'] != ' '):
-                printboard(theboard)
-                print("\nGame Over")
-                print(f"**** {turn} won! ****")
-                break
+    def check_winner(self, b, mark):
+        # Check rows, columns, diagonals
+        for i in range(3):
+            if b[i][0] == b[i][1] == b[i][2] == mark: return True
+            if b[0][i] == b[1][i] == b[2][i] == mark: return True
+        if b[0][0] == b[1][1] == b[2][2] == mark: return True
+        if b[0][2] == b[1][1] == b[2][0] == mark: return True
+        return False
 
-        
-        if count == 9:
-            print("\nGame Over")
-            print("It's a Tie!")
-            break
+    def is_draw(self, b):
+        for row in b:
+            for cell in row:
+                if cell == "":
+                    return False
+        return True
 
-        
-        turn = 'O' if turn == 'X' else 'X'
+    def reset_board(self):
+        self.board = [["" for _ in range(3)] for _ in range(3)]
+        for i in range(3):
+            for j in range(3):
+                self.buttons[i][j]["text"] = ""
 
-    
-    restart = input("Do you want to play again? (y/n): ").lower()
-    if restart == 'y':
-        for key in board_key:
-            theboard[key] = ' '
-        game()
-
+# Run game
 if __name__ == "__main__":
-    game()
+    TicTacToeAI()
